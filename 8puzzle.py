@@ -10,8 +10,9 @@ class Problem:
     
     def PRINT(self, state):
         for i in range(len(state.STATE)):
-            print(f'initial state row {i}: {state.STATE[i]}') # print every row
-    
+            print(state.STATE[i]) # print every row
+        print('\n')
+
     def GOAL_TEST(self, state):
         return state == self.GOAL_STATE
 
@@ -116,6 +117,14 @@ def EXPAND(state):
     # print(f'expanded nodes {expanded_nodes}')
     return expanded_nodes
 
+def backtrack(goal):
+    solution_path = [goal.STATE]
+    curr = goal.PARENT
+    while curr.PARENT:
+        solution_path.append(curr.STATE)
+        curr = curr.PARENT
+    return solution_path
+
 # main search function to be called for any algorithm
 def general_search(problem, QUEUING_FUNCTION):
     nodes = []
@@ -131,18 +140,27 @@ def general_search(problem, QUEUING_FUNCTION):
             return None
 
         max_nodes_expanded = max(nodes_expanded, max_nodes_expanded) # keep track of maximum expanded nodes
-        _, node = heappop(nodes) # get the node with the lowest cost
-        visited[tuple(tuple(row) for row in node.STATE)] = True # node is visited
+        _, curr_node = heappop(nodes) # get the node with the lowest cost
+        visited[tuple(tuple(row) for row in curr_node.STATE)] = True # node is visited
         # print(f'visited {visited}')
 
-        if problem.GOAL_TEST(node.STATE): # if node is the goal state
+        if problem.GOAL_TEST(curr_node.STATE): # if node is the goal state
             end_time = time.time() - start_time # end time of search
             print(f'Puzzle solved successfully!!')
-            print(f'Answer found at {node.DEPTH} depth. \n{nodes_expanded} nodes expanded.')
+            print(f'Answer found at {curr_node.DEPTH} depth. \n{nodes_expanded} nodes expanded.')
             print(f'Search completed in {end_time:.2f} seconds')
-            return node # return the goal state
+            # print the solution path
+            print(f'Enter 1 to print the solution or 0 to exit: ', end=' ')
+            option = int(input())
+            if option:
+                solution_path = backtrack(curr_node)
+                for i, state in enumerate(reversed(solution_path)):
+                    print(f'depth: {i+1}')
+                    for i in range(len(state)):
+                        print(state[i]) # print every row
+            break
         else:
-            for child_node in EXPAND(node): # get the possible operators for this node
+            for child_node in EXPAND(curr_node): # get the possible operators for this node
                 # print(f'child node depth {child_node.DEPTH}')
                 check_node = tuple(tuple(row) for row in child_node.STATE)
                 if check_node not in visited.keys(): # check if node is not visited
@@ -154,14 +172,7 @@ def general_search(problem, QUEUING_FUNCTION):
                     if QUEUING_FUNCTION == 'manhattan_distance_search':
                         heappush(nodes, (child_node.DEPTH + child_node.manhattan(), child_node))
                     nodes_expanded += 1
-                
-                if problem.GOAL_TEST(child_node.STATE): # if node is the goal state
-                    end_time = time.time() - start_time # end time of search
-                    print(f'Puzzle solved successfully!!')
-                    print(f'Answer found at {child_node.DEPTH} depth. \n{nodes_expanded} nodes expanded.')
-                    print(f'Search completed in {end_time:.2f} seconds')
-                    return node # return the goal state
-        # print(f'{node.DEPTH}, {nodes_expanded}')
+        # print(f'{curr_node.DEPTH}, {nodes_expanded}')
 
 def get_puzzle_input():
     puzzle = []
