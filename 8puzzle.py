@@ -8,7 +8,7 @@ class Problem:
         self.INITIAL_STATE = initail_state
         self.GOAL_STATE = goal_state
     
-    def print_state(self, state):
+    def PRINT(self, state):
         for i in range(len(state.STATE)):
             print(f'initial state row {i}: {state.STATE[i]}') # print every row
     
@@ -18,6 +18,8 @@ class Problem:
 class node:
     def __init__(self, state, parent=None):
         self.STATE = state
+        self.MISPLACED_DISTANCE = 0
+        self.MANHATTAN_DISTANCE = 0
 
         if not parent:
             self.PARENT = None
@@ -26,9 +28,6 @@ class node:
             self.STATE = state
             self.PARENT = parent
             self.DEPTH = self.PARENT.DEPTH + 1
-    
-    def __eq__(self, other):
-        return self.DEPTH == other.DEPTH
     
     def up(state, row, col):
         up_state = deepcopy(state)
@@ -53,6 +52,29 @@ class node:
         right_state[row][col], right_state[row][col + 1] = right_state[row][col + 1], right_state[row][col] # move blank tile right
         # print(f'right state {right_state}')
         return right_state
+    
+    def misplaced(self):
+        if self.MISPLACED_DISTANCE:
+            return self.MISPLACED_DISTANCE
+        else:
+            # create goal state to count misplaced tiles
+            goal_list = [i for i in range(1, len(self.STATE)**2)] + [0]
+            goal_state = [goal_list[i:i+n] for i in range(0, size + 1, n)]
+
+            # calculate the total number of misplaced tiles in the state
+            total = sum(curr != goal for curr_row, goal_row in zip(self.STATE, goal_state) for curr, goal in zip(curr_row, goal_row) if curr != 0)
+            
+            self.MISPLACED_DISTANCE = total
+            return self.MISPLACED_DISTANCE
+
+    def manhattan(self):
+        if self.MANHATTAN_DISTANCE:
+            return self.MANHATTAN_DISTANCE
+        else:
+            pass
+
+    def __eq__(self, other):
+        return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_DISTANCE == other.DEPTH + other.MISPLACED_DISTANCE or self.DEPTH + self.MANHATTAN_DISTANCE == self.DEPTH + other.MANHATTAN_DISTANCE
 
 def EXPAND(state):
     expanded_nodes = []
@@ -111,6 +133,10 @@ def general_search(problem, QUEUING_FUNCTION):
                     if QUEUING_FUNCTION == 'uniform_cost_search':
                         # print(f'queueing {child_node.DEPTH}, {child_node}')
                         heappush(nodes, (child_node.DEPTH, child_node))
+                    if QUEUING_FUNCTION == 'misplaced_tile_search':
+                        heappush(nodes, (child_node.DEPTH + child_node.misplaced(), child_node))
+                    if QUEUING_FUNCTION == 'manhattan_distance_search':
+                        heappush(nodes, (child_node.DEPTH + child_node.manhattan(), child_node))
                     nodes_expanded += 1
                 
                 if problem.GOAL_TEST(child_node.STATE): # if node is the goal state
@@ -209,7 +235,7 @@ if __name__ == '__main__':
     # get puzzle and run the algorithm chosen
     # size, n, initial_state = get_puzzle_input()
     # size, n, initial_state = 8, 3, node(trivial)
-    size, n, initial_state = 8, 3, node(easy)
+    size, n, initial_state = 8, 3, node(oh_boy)
     # assert all(0 <= i <= size for row in initial_state for i in row), f'Invalid input for 8-puzzle. Numbers should be between 0 and {size}.'
     # assert len({i for row in initial_state for i in row}) == size + 1, f'Duplicate numbers found in input.'
     # assert len(initial_state) == n and len(initial_state[0]) == n, f'Please enter a valid puzzle of size {n}.'
@@ -217,6 +243,6 @@ if __name__ == '__main__':
     # algorithm(puzzle)
     goal_state = get_goal_state(size, n)
     puzzle = Problem(initial_state, goal_state)
-    puzzle.print_state(initial_state)
+    puzzle.PRINT(initial_state)
     # general_search(puzzle, 'uniform_cost_search')
     algorithm(puzzle)
