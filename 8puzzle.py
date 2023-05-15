@@ -9,17 +9,19 @@ class Problem:
         self.GOAL_STATE = goal_state
     
     def PRINT(self, state):
+        """Print the current state of the problem"""
         for i in range(len(state.STATE)):
             print(state.STATE[i]) # print every row
         print('\n')
 
     def GOAL_TEST(self, state):
-        return state == self.GOAL_STATE
+        """Test if the goal state is reached"""
+        return state == self.GOAL_STATE # if state is goal state, return True
 
 class node:
     def __init__(self, state, parent=None):
         self.STATE = state
-        self.MISPLACED_DISTANCE = 0
+        self.MISPLACED_TILE = 0
         self.MANHATTAN_DISTANCE = 0
 
         if not parent:
@@ -31,32 +33,34 @@ class node:
             self.DEPTH = self.PARENT.DEPTH + 1
     
     def up(state, row, col):
+        """Move blank tile up and return new state."""
         up_state = deepcopy(state)
         up_state[row][col], up_state[row - 1][col] = up_state[row - 1][col], up_state[row][col] # move blank tile up
-        # print(f'up state {up_state}')
         return up_state
 
     def down(state, row, col):
+        """Move blank tile down and return new state."""
         down_state = deepcopy(state)
         down_state[row][col], down_state[row + 1][col] = down_state[row + 1][col], down_state[row][col] # move blank tile down
-        # print(f'down state {down_state}')
         return down_state
 
     def left(state, row, col):
+        """Move blank tile left and return new state."""
         left_state = deepcopy(state)
         left_state[row][col], left_state[row][col - 1] = left_state[row][col - 1], left_state[row][col] # move blank tile left
-        # print(f'left state {left_state}')
         return left_state
 
     def right(state, row, col):
+        """Move blank tile right and return new state."""
         right_state = deepcopy(state)
         right_state[row][col], right_state[row][col + 1] = right_state[row][col + 1], right_state[row][col] # move blank tile right
-        # print(f'right state {right_state}')
         return right_state
     
+    # misplaced tile hueristic
     def misplaced(self):
-        if self.MISPLACED_DISTANCE:
-            return self.MISPLACED_DISTANCE
+        """Calculate and return the number of misplaced tiles in the current state."""
+        if self.MISPLACED_TILE:
+            return self.MISPLACED_TILE
         else:
             # create goal state to count misplaced tiles
             goal_list = [i for i in range(1, len(self.STATE)**2)] + [0]
@@ -71,10 +75,12 @@ class node:
                     if self.STATE[i][j] != goal_state[i][j]:
                         total += 1
 
-            self.MISPLACED_DISTANCE = total
-            return self.MISPLACED_DISTANCE
+            self.MISPLACED_TILE = total
+            return self.MISPLACED_TILE
     
+    # manhattan distance hueristic
     def manhattan(self):
+        """Calculate and return the manhattan distance of the current state."""
         if self.MANHATTAN_DISTANCE:
             return self.MANHATTAN_DISTANCE
         else:
@@ -90,10 +96,15 @@ class node:
             self.MANHATTAN_DISTANCE = total
             return self.MANHATTAN_DISTANCE
 
+    # tiebreaker in priority queue
     def __eq__(self, other):
         return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_DISTANCE == other.DEPTH + other.MISPLACED_DISTANCE or self.DEPTH + self.MANHATTAN_DISTANCE == other.DEPTH + other.MANHATTAN_DISTANCE
 
 def EXPAND(state):
+    """
+    Takes in a state, determines all possible operators and perform those actions.\n
+    Return the list of expanded nodes
+    """
     expanded_nodes = []
     operators = []
     row, col = next(((row, col.index(0)) for row, col in enumerate(state.STATE) if 0 in col), None) # get the blank position
@@ -118,6 +129,10 @@ def EXPAND(state):
     return expanded_nodes
 
 def backtrack(goal):
+    """
+    Take in a goal state and backtrack upto the initial state.\n
+    Return the solution path.\n
+    """
     solution_path = [goal.STATE]
     curr = goal.PARENT
     while curr.PARENT:
@@ -127,10 +142,11 @@ def backtrack(goal):
 
 # main search function to be called for any algorithm
 def general_search(problem, QUEUING_FUNCTION):
-    nodes = []
+    """General search function which searches for a solution using any queuing function (uniform cost, misplaced tile, manhattan distance)"""
+    nodes = [] # priority queue
     visited = {} # to check if a state is already visited
     nodes_expanded = 0 # how many nodes have been expanded
-    max_nodes_expanded = 0
+    max_queue_size = 0 # maximum size of the priority queue
     start_time = time.time() # start time of search
 
     heappush(nodes, (float('inf'), problem.INITIAL_STATE)) # add initial state to the queue with infinite cost
@@ -139,43 +155,44 @@ def general_search(problem, QUEUING_FUNCTION):
         if not nodes:
             return None
 
-        max_nodes_expanded = max(nodes_expanded, max_nodes_expanded) # keep track of maximum expanded nodes
+        max_queue_size = max(max_queue_size, nodes.__len__()) # keep track of maximum expanded nodes
         _, curr_node = heappop(nodes) # get the node with the lowest cost
-        visited[tuple(tuple(row) for row in curr_node.STATE)] = True # node is visited
-        # print(f'visited {visited}')
+        visited[tuple(tuple(row) for row in curr_node.STATE)] = True # mark node as visited
 
-        if problem.GOAL_TEST(curr_node.STATE): # if node is the goal state
+        # if goal state is reached, terminate and optianally return the solution path
+        if problem.GOAL_TEST(curr_node.STATE):
             end_time = time.time() - start_time # end time of search
             print(f'Puzzle solved successfully!!')
-            print(f'Answer found at {curr_node.DEPTH} depth. \n{nodes_expanded} nodes expanded.')
+            print(f'Answer found at {curr_node.DEPTH} depth. \n{nodes_expanded} nodes expanded. \n{max_queue_size} maximum queue size.')
             print(f'Search completed in {end_time:.2f} seconds')
+
             # print the solution path
             print(f'Enter 1 to print the solution or 0 to exit: ', end=' ')
             option = int(input())
             if option:
                 solution_path = backtrack(curr_node)
-                for i, state in enumerate(reversed(solution_path)):
+                for i, state in enumerate(reversed(solution_path)): # print the solution path in reverse order (initial state --> goal state)
                     print(f'depth: {i+1}')
                     for i in range(len(state)):
                         print(state[i]) # print every row
             break
+        # otherwise, expand the current node with all possible operators and add them to the priority queue
         else:
             for child_node in EXPAND(curr_node): # get the possible operators for this node
-                # print(f'child node depth {child_node.DEPTH}')
                 check_node = tuple(tuple(row) for row in child_node.STATE)
                 if check_node not in visited.keys(): # check if node is not visited
                     if QUEUING_FUNCTION == 'uniform_cost_search':
-                        # print(f'queueing {child_node.DEPTH}, {child_node}')
-                        heappush(nodes, (child_node.DEPTH, child_node))
+                        heappush(nodes, (child_node.DEPTH, child_node)) # cost is the current node's depth
                     if QUEUING_FUNCTION == 'misplaced_tile_search':
-                        heappush(nodes, (child_node.DEPTH + child_node.misplaced(), child_node))
+                        heappush(nodes, (child_node.DEPTH + child_node.misplaced(), child_node)) # cost is the current node's depth + misplaced tile
                     if QUEUING_FUNCTION == 'manhattan_distance_search':
-                        heappush(nodes, (child_node.DEPTH + child_node.manhattan(), child_node))
-                    nodes_expanded += 1
-        # print(f'{curr_node.DEPTH}, {nodes_expanded}')
+                        heappush(nodes, (child_node.DEPTH + child_node.manhattan(), child_node)) # cost is the current node's depth + manhattan distance
+                    nodes_expanded += 1 # keep track of how many nodes have been expanded
 
 def get_puzzle_input():
+    """Get the initial state of the puzzle from the user."""
     puzzle = []
+    print(f'The row numbers should be space separated and between 1 and {size} (inclusive).\n')
     for i in range(n):
         print(f'Enter the {i+1}th row:', end=' ')
         row = list(map(int, input().strip().split())) # get a row
@@ -184,9 +201,10 @@ def get_puzzle_input():
     return size, n, puzzle
 
 def get_goal_state(size, n):
-    goal_list = [i for i in range(1, size + 1)]
-    goal_list.append(0)
-    goal_state = [goal_list[i:i+n] for i in range(0, size + 1, n)]
+    """Determine the goal state of the puzzle."""
+    goal_list = [i for i in range(1, size + 1)] # create a goal list
+    goal_list.append(0) # add blank tile
+    goal_state = [goal_list[i:i+n] for i in range(0, size + 1, n)] # convert to the matrix representation
     print(f'goal state: {goal_state}')
     return goal_state
 
@@ -194,7 +212,7 @@ def get_goal_state(size, n):
 # implemented from rules found in the following stackoverflow question
 # https://stackoverflow.com/questions/55454496/is-it-possible-to-check-if-the-15-puzzle-is-solvable-with-a-different-goal-state
 def is_solvable(puzzle):
-    print(puzzle)
+    """Check if the given puzzle is solvable."""
     state = [i for row in puzzle for i in row if i != 0]
     inversions = 0
     sz = len(state)
@@ -204,7 +222,6 @@ def is_solvable(puzzle):
         for j in range(i+1, sz):
             if state[i] > state[j]:
                 inversions += 1
-    print(f'inversions: {inversions}')
 
     # if width is odd
     n = len(puzzle[0])
@@ -215,19 +232,24 @@ def is_solvable(puzzle):
     else:
         for i in range(n - 1, -1, -1):
             if 0 in puzzle[i]:
-                idx = (n - i - 1) % 2 # for even width get the row index of the blank
-                print(f'row index of 0: {idx}')
+                idx = n - i # get the row index of the blank from bottom
 
         if idx % 2 == 1:
-            if inversions % 2 == 0: # for even inversions, 0 should be at an odd row from bottom
+            if inversions % 2 == 0: # for even inversions, 0 (blank) should be at an odd row from bottom
                 return True
         if idx % 2 == 0:
-            if inversions % 2 == 1: # for odd inversions, 0 should be at an even row from bottom
+            if inversions % 2 == 1: # for odd inversions, 0 (blank) should be at an even row from bottom
                 return True
 
     return False
 
 def algorithm(puzzle):
+    """
+    Select the algorithm to solve the puzzle.\n
+    1. Uniform Cost Search\n
+    2. Misplaced Tile Search\n
+    3. Manhattan Distance Search\n
+    """
     # terminate if the puzzle is not solvable
     if not is_solvable(puzzle.INITIAL_STATE.STATE):
         raise AssertionError(f'The puzzle is not solvable. Try another input.')
@@ -246,30 +268,25 @@ def algorithm(puzzle):
             general_search(puzzle, 'manhattan_distance_search')
 
 if __name__ == '__main__':
-    # print(f'Enter the puzzle size: ', end=' ')
-    # size = int(input()) # puzzle size e.g. 8, 15, 24
-    # n = int(math.sqrt(size)) + 1 # determine n to create a n*n grid
+    print(f'Enter the puzzle size (8, 15, 24): ', end=' ')
+    size = int(input()) # puzzle size e.g. 8, 15, 24
+    n = int(math.sqrt(size)) + 1 # determine n to create a n*n grid
 
-    # test inputs
+    # test inputs from project description
     trivial = [[1,2,3], [4,5,6], [7,8,0]]
     very_easy = [[1,2,3], [4,5,6], [7,0,8]]
     easy = [[1,2,0], [4,5,3], [7,8,6]]
     doable = [[0,1,2], [4,5,3], [7,8,6]]
     oh_boy = [[8,7,1], [6,0,2], [5,4,3]]
     unsolvable = [[1,2,3], [4,5,6], [8,7,0]]
-    final_state = [[1,2,3], [4,5,6], [7,8,0]]
 
     # get puzzle and run the algorithm chosen
-    # size, n, initial_state = get_puzzle_input()
-    # size, n, initial_state = 8, 3, node(trivial)
-    size, n, initial_state = 8, 3, node(oh_boy)
-    # assert all(0 <= i <= size for row in initial_state for i in row), f'Invalid input for 8-puzzle. Numbers should be between 0 and {size}.'
-    # assert len({i for row in initial_state for i in row}) == size + 1, f'Duplicate numbers found in input.'
-    # assert len(initial_state) == n and len(initial_state[0]) == n, f'Please enter a valid puzzle of size {n}.'
+    size, n, initial_state = get_puzzle_input()
+    assert all(0 <= i <= size for row in initial_state for i in row), f'Invalid input for {size}-puzzle. Numbers should be between 0 and {size}.'
+    assert len({i for row in initial_state for i in row}) == size + 1, f'Duplicate numbers found in input.'
+    assert len(initial_state) == n and len(initial_state[0]) == n, f'Please enter a valid puzzle of size {n}.'
 
-    # algorithm(puzzle)
     goal_state = get_goal_state(size, n)
-    puzzle = Problem(initial_state, goal_state)
-    puzzle.PRINT(initial_state)
-    # general_search(puzzle, 'uniform_cost_search')
+    puzzle = Problem(node(initial_state), goal_state)
+    puzzle.PRINT(puzzle.INITIAL_STATE)
     algorithm(puzzle)
