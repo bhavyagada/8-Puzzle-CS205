@@ -60,21 +60,37 @@ class node:
             # create goal state to count misplaced tiles
             goal_list = [i for i in range(1, len(self.STATE)**2)] + [0]
             goal_state = [goal_list[i:i+n] for i in range(0, size + 1, n)]
+            total = 0
 
             # calculate the total number of misplaced tiles in the state
-            total = sum(curr != goal for curr_row, goal_row in zip(self.STATE, goal_state) for curr, goal in zip(curr_row, goal_row) if curr != 0)
-            
+            for i in range(len(self.STATE)):
+                for j in range(len(self.STATE[i])):
+                    if self.STATE[i][j] == 0: # don't consider blank tile
+                        continue
+                    if self.STATE[i][j] != goal_state[i][j]:
+                        total += 1
+
             self.MISPLACED_DISTANCE = total
             return self.MISPLACED_DISTANCE
-
+    
     def manhattan(self):
         if self.MANHATTAN_DISTANCE:
             return self.MANHATTAN_DISTANCE
         else:
-            pass
+            total = 0
+            for i in range(len(self.STATE)):
+                for j in range(len(self.STATE[i])):
+                    val = self.STATE[i][j]
+                    if val != 0:
+                        goal_i, goal_j = divmod(val - 1, len(self.STATE))  # calculate the goal position of the current value using quotient and remainder
+                        distance = abs(i - goal_i) + abs(j - goal_j)  # calculate manhattan distance
+                        total += distance
+            
+            self.MANHATTAN_DISTANCE = total
+            return self.MANHATTAN_DISTANCE
 
     def __eq__(self, other):
-        return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_DISTANCE == other.DEPTH + other.MISPLACED_DISTANCE or self.DEPTH + self.MANHATTAN_DISTANCE == self.DEPTH + other.MANHATTAN_DISTANCE
+        return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_DISTANCE == other.DEPTH + other.MISPLACED_DISTANCE or self.DEPTH + self.MANHATTAN_DISTANCE == other.DEPTH + other.MANHATTAN_DISTANCE
 
 def EXPAND(state):
     expanded_nodes = []
