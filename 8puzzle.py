@@ -98,7 +98,7 @@ class node:
 
     # tiebreaker in priority queue
     def __eq__(self, other):
-        return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_DISTANCE == other.DEPTH + other.MISPLACED_DISTANCE or self.DEPTH + self.MANHATTAN_DISTANCE == other.DEPTH + other.MANHATTAN_DISTANCE
+        return self.DEPTH == other.DEPTH or self.DEPTH + self.MISPLACED_TILE == other.DEPTH + other.MISPLACED_TILE or self.DEPTH + self.MANHATTAN_DISTANCE == other.DEPTH + other.MANHATTAN_DISTANCE
 
 def EXPAND(state):
     """
@@ -148,12 +148,13 @@ def general_search(problem, QUEUING_FUNCTION):
     nodes_expanded = 0 # how many nodes have been expanded
     max_queue_size = 0 # maximum size of the priority queue
     start_time = time.time() # start time of search
+    depth_counts = {} # for plotting purposes
 
     heappush(nodes, (float('inf'), problem.INITIAL_STATE)) # add initial state to the queue with infinite cost
 
     while True:
         if not nodes:
-            return None
+            break
 
         max_queue_size = max(max_queue_size, nodes.__len__()) # keep track of maximum expanded nodes
         _, curr_node = heappop(nodes) # get the node with the lowest cost
@@ -189,6 +190,15 @@ def general_search(problem, QUEUING_FUNCTION):
                         heappush(nodes, (child_node.DEPTH + child_node.manhattan(), child_node)) # cost is the current node's depth + manhattan distance
                     nodes_expanded += 1 # keep track of how many nodes have been expanded
 
+                    # for plotting purposes
+                    depth = child_node.DEPTH
+                    if depth in depth_counts:
+                        depth_counts[depth] += 1
+                    else:
+                        depth_counts[depth] = 1
+    
+    return depth_counts
+
 def get_puzzle_input():
     """Get the initial state of the puzzle from the user."""
     puzzle = []
@@ -208,9 +218,6 @@ def get_goal_state(size, n):
     print(f'goal state: {goal_state}')
     return goal_state
 
-# to check if a given state is solvable
-# implemented from rules found in the following stackoverflow question
-# https://stackoverflow.com/questions/55454496/is-it-possible-to-check-if-the-15-puzzle-is-solvable-with-a-different-goal-state
 def is_solvable(puzzle):
     """Check if the given puzzle is solvable."""
     state = [i for row in puzzle for i in row if i != 0]
@@ -262,10 +269,15 @@ def algorithm(puzzle):
     match algorithm:
         case 1:
             general_search(puzzle, 'uniform_cost_search')
+            # depth_counts = general_search(puzzle, 'uniform_cost_search')
         case 2:
             general_search(puzzle, 'misplaced_tile_search')
+            # depth_counts = general_search(puzzle, 'misplaced_tile_search')
         case 3:
             general_search(puzzle, 'manhattan_distance_search')
+            # depth_counts = general_search(puzzle, 'manhattan_distance_search')
+    
+    # return depth_counts # for plotting purposes
 
 if __name__ == '__main__':
     print(f'Enter the puzzle size (8, 15, 24): ', end=' ')
@@ -290,3 +302,5 @@ if __name__ == '__main__':
     puzzle = Problem(node(initial_state), goal_state)
     puzzle.PRINT(puzzle.INITIAL_STATE)
     algorithm(puzzle)
+    # depth_counts = algorithm(puzzle) # for plotting purposes
+    # print(f'depth counts {depth_counts}') # for plotting purposes
