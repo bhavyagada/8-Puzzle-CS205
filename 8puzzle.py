@@ -196,6 +196,16 @@ def general_search(problem, QUEUING_FUNCTION):
                         depth_counts[depth] += 1
                     else:
                         depth_counts[depth] = 1
+        
+        # print the depth and heuristic of the node being expanded
+        if QUEUING_FUNCTION == 'uniform_cost_search':
+            print(f'The best state to expand with a g(n) = {curr_node.DEPTH} and h(n) = {0} is...')
+        elif QUEUING_FUNCTION == 'misplaced_tile_search':
+            print(f'The best state to expand with a g(n) = {curr_node.DEPTH} and h(n) = {curr_node.misplaced()} is...')
+        elif QUEUING_FUNCTION == 'manhattan_distance_search':
+            print(f'The best state to expand with a g(n) = {curr_node.DEPTH} and h(n) = {curr_node.manhattan()} is...')
+        for i in range(len(curr_node.STATE)):
+            print(curr_node.STATE[i]) # print every row
     
     return depth_counts
 
